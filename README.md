@@ -2,18 +2,6 @@
 
 This project enables the creation and management of custom tokens on the Solana blockchain. It provides functionalities for minting, burning, and transferring tokens using a Solana wallet.
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Technologies Used](#technologies-used)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Scripts](#scripts)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
 ## Introduction
 
 The Solana Custom Token Launching project facilitates the creation, minting, burning, and transferring of custom tokens on the Solana blockchain. This project is built using React for the frontend and integrates with the Solana blockchain through the Solana web3.js library.
