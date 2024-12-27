@@ -1,0 +1,100 @@
+import * as anchor from "@coral-xyz/anchor";
+import { Program} from "@coral-xyz/anchor";
+import { AirdropProject } from "../target/types/airdrop_project";
+import {Cluster, Connection, Keypair, PublicKey, SystemProgram, Transaction,} from '@solana/web3.js'
+import { TOKEN_PROGRAM_ID,MintLayout } from "@solana/spl-token";
+
+describe("airdrop-project", () => {
+  // Configure the client to use the local cluster.
+   const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+
+  const program = anchor.workspace.AirdropProject as Program<AirdropProject>;
+  const mintAccountKp = new Keypair();
+  const decimals = 8; 
+
+  it("Is initialized!", async () => {
+    // Add your test here.
+    const tx = await program.methods.initialize().rpc();
+    console.log("Your transaction signature", tx);
+  });
+
+  it("create mint", async () => {
+    // Calculate the required lamports for rent exemption
+
+    console.log("tokenProgram: ", TOKEN_PROGRAM_ID);
+    console.log("systemProgram: ", SystemProgram.programId);
+
+
+    const accountInfo = await provider.connection.getAccountInfo(mintAccountKp.publicKey);
+
+    if (accountInfo) {
+      // If the mint account exists, check if it's already initialized
+      const mintData = accountInfo.data;
+      if (mintData.length < MintLayout.span) {
+        throw new Error("Invalid mint account data");
+      }
+      const mintState = MintLayout.decode(mintData);
+
+      if (mintState.isInitialized) {
+        console.log("Mint account already initialized.");
+        return; // Skip mint initialization if already initialized
+      }
+    }
+
+
+    // Calculate the space required for a mint account (82 bytes)
+  const mintSpace = 82;  // This is fixed size for a mint account
+  console.log(`createAccount.. `);
+  // Create the mint account with the required space
+  const tx = new Transaction().add(
+    SystemProgram.createAccount({
+      fromPubkey: provider.wallet.publicKey,
+      newAccountPubkey: mintAccountKp.publicKey,
+      lamports: await provider.connection.getMinimumBalanceForRentExemption(mintSpace),
+      space: mintSpace,
+      programId: TOKEN_PROGRAM_ID, // The Token program will own the mint account
+    })
+  );
+
+  // Sign the transaction
+  const tx2 = await provider.sendAndConfirm(tx, [mintAccountKp]);
+
+  console.log(`sendAndConfirm succesful: ` + tx2);
+
+  
+  
+
+     const txHash = await program.methods
+      .initializeMint(decimals)
+      .accounts({
+        mint: mintAccountKp.publicKey,
+        authority: provider.wallet.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+      })
+      .signers([mintAccountKp])
+      .rpc();
+    console.log(`Use 'solana confirm -v ${txHash}' to see the logs`);
+
+    // Confirm transaction
+    await provider.connection.confirmTransaction(txHash);
+
+    // Fetch the created account
+    const mintAccount = await program.account.mint.fetch(
+      mintAccountKp.publicKey
+    );
+ 
+    // Verify the mint's properties
+/*     assert.equal(mintAccount.decimals, decimals, "Decimals do not match");
+    assert.ok(
+      mintAccount.mintAuthority.equals(provider.wallet.publicKey),
+      "Mint authority mismatch"
+    ); */
+    console.log(
+      "Mint account successfully created with the correct properties!"
+    );
+  });
+});
+

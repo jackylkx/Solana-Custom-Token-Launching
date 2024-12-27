@@ -1,0 +1,41 @@
+use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Burn, InitializeMint, Mint, MintTo, Token, TokenAccount};
+
+declare_id!("L8TVnuJE6oASEa1eokVu6wzcq3486oEVrk2oqNR8Q5z");
+
+#[program]
+pub mod airdrop_project {
+    use super::*;
+
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+        msg!("Greetings from: {:?}", ctx.program_id);
+        Ok(())
+    }
+
+    pub fn initialize_mint(ctx: Context<CreateMint>, decimals: u8) -> Result<()> {
+        let cpi_accounts = InitializeMint {
+            mint: ctx.accounts.mint.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        msg!("Token mint initializing");
+        token::initialize_mint(cpi_ctx, decimals, &ctx.accounts.authority.key(), None);
+        msg!("Token mint initialized");
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct Initialize {}
+
+#[derive(Accounts)]
+pub struct CreateMint<'info> {
+    #[account(init, payer = authority, space = 82)]
+    pub mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub rent: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
